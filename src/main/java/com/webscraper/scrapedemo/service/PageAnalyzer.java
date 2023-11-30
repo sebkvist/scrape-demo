@@ -21,7 +21,7 @@ public class PageAnalyzer {
     public ScrapeResult analyze(String scrapeUrl) {
          doc = WebConnector.getPage(scrapeUrl);
 
-        return new ScrapeResult(doc.text(), discoverUrls());
+        return new ScrapeResult(doc.text(), discoverUrls(), discoverImageLinks());
     }
     private Document connect(String scrapeUrl) {
         try {
@@ -31,18 +31,26 @@ public class PageAnalyzer {
             throw new ScrapeException("Error connecting to url: " + scrapeUrl, ioexception);
         }
     }
-    private Set<String> discoverUrls() {
+    public Set<String> discoverUrls() {
+        return discoverElementLinks("a", "href");
+    }
+
+    public Set<String> discoverImageLinks() {
+        return discoverElementLinks("img", "src");
+    }
+
+    private Set<String> discoverElementLinks(String element, String attribute) {
         Set<String> urls = new HashSet<>();
 
         logger.fine("Page size to discover:"+ doc.text().length());
-        Elements alist = doc.select("a");
-        logger.fine("a href:" + Arrays.toString(alist.toArray()));
-        Set<String> collect = alist.stream()
-            .map(element -> element.absUrl("href"))
-            .collect(Collectors.toSet());
-
-        urls.addAll(collect);
+        Elements elList = doc.select(element);
+        logger.info("a href:" + Arrays.toString(elList.toArray()));
+        Set<String> links = elList.stream()
+                .map(el -> el.absUrl(attribute))
+                .collect(Collectors.toSet());
+        urls.addAll(links);
 
         return urls;
     }
+
 }

@@ -4,7 +4,9 @@ import com.webscraper.scrapedemo.exception.ScrapeException;
 import com.webscraper.scrapedemo.model.ScrapeResult;
 import com.webscraper.scrapedemo.service.LocalFileService;
 import com.webscraper.scrapedemo.service.PageAnalyzer;
+import com.webscraper.scrapedemo.service.WebConnector;
 
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -32,40 +34,49 @@ public class WebScraper {
     }
 
     private void savePageAndDiscoverUrlsRecursively(String scrapeUrl) {
+        recurseLevel++;
         logger.info("Scraping url..:" + scrapeUrl);
 
         ScrapeResult scrapeResult = analyzer.analyze(scrapeUrl);
+
+        // save current page
         savePage(scrapeUrl, scrapeResult.content());
 
-        Set<String> filtered = filterDiscoveredUrls(scrapeResult);
+        // handle images
+        Set<String> filteredImages = filterDiscoveredUrls(scrapeResult.imgLinks());
+        logger.info("number of new images:" + filteredImages.size());
+        filteredImages.forEach((src) -> {
+            saveImage(src);
+        });
 
-//        logger.info("number of new urls:" + filtered.size());
-        logger.info("total scraped urls:" + discoveredUrls.size());
+        // handle urls recursively
+        Set<String> filteredUrls = filterDiscoveredUrls(scrapeResult.urlsToScrape());
+        logger.info("number of new urls:" + filteredUrls.size());
+
+        logger.info("total discovered urls:" + discoveredUrls.size());
+
         if (discoveredUrls.size() > PAGE_LIMIT) {
             logger.info(String.format("reached page limit of %d, stopping recursion.", PAGE_LIMIT));
 
         } else {
             logger.info("starting to recurse..., on level:" + recurseLevel);
-            recurseLevel++;
-            filtered.forEach(this::savePageAndDiscoverUrlsRecursively);
-            recurseLevel--;
-            logger.info("recursed up, level:" + recurseLevel);
+            filteredUrls.forEach(this::savePageAndDiscoverUrlsRecursively);
         }
+        recurseLevel--;
+        logger.info("recursive level up:" + recurseLevel);
     }
 
-    private Set<String> filterDiscoveredUrls(ScrapeResult scrapeResult) {
-        Set<String> discovered = scrapeResult.urlsToScrape();
-//        logger.info("urls discovered:");
-//        logger.info(Arrays.toString(discovered.toArray()));
-
+    private Set<String> filterDiscoveredUrls(Set<String> discovered) {
+        // filter alredy discovered urls
         Set<String> filtered = discovered.stream().filter((entry) -> !discoveredUrls.contains(entry))
                 .collect(Collectors.toSet());
 
-        logger.info("new urls filtered:");
+//        logger.info("new urls filtered:");
 //        logger.info(Arrays.toString(filtered.toArray()));
+        // filter relative, to start with
         filtered.forEach((entry) -> {
             if (!entry.contains("http")) {
-                logger.info("relative url:" + entry);
+                logger.info("new relative url:" + entry);
             }
         });
 
@@ -73,10 +84,29 @@ public class WebScraper {
         return filtered;
     }
 
-    private void savePage(String scrapeUrl, String content)  {
-  //      logger.info("Saving content for url:" + scrapeUrl);
-        String path = fileService.urlToPath(scrapeUrl);
+    private void savePage(String url, String content)  {
+        logger.info("Saving content for url:" + url);
+        if (!url.contains("http")) {
+            logger.warning("WARNING, RELATIVE: " + url);
+        }
+
+        String path = fileService.urlToPath(url);
         fileService.savePage(path, content);
+    }
+
+    private void saveImage(String url)  {
+        try(InputStream inputStream = WebConnector.getImage(url)) {
+            //logger.info("Saving image for url:" + url);
+            if (!url.contains("http")) {
+                logger.warning("WARNING, RELATIVE: " + url);
+            }
+            String path = fileService.urlToPath(url);
+            fileService.saveImage(path, inputStream.readAllBytes());
+
+        } catch (Exception ex) {
+            throw new ScrapeException("Error saving image:" + url, ex);
+
+        }
     }
 
 }
