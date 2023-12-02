@@ -1,6 +1,5 @@
-package com.webscraper.scrapedemo.service;
+package com.webscraper.scrapedemo.service.web;
 
-import com.webscraper.scrapedemo.controller.WebScraper;
 import com.webscraper.scrapedemo.exception.ScrapeException;
 import com.webscraper.scrapedemo.model.ScrapeResult;
 import org.jsoup.Jsoup;
@@ -19,18 +18,11 @@ public class PageAnalyzer {
 
     private Document doc;
     public ScrapeResult analyze(String scrapeUrl) {
-         doc = WebConnector.getPage(scrapeUrl);
+        getPage(scrapeUrl);
 
         return new ScrapeResult(doc.text(), discoverUrls(), discoverImageLinks());
     }
-    private Document connect(String scrapeUrl) {
-        try {
-            doc = Jsoup.connect(scrapeUrl).get();
-            return doc;
-        } catch (IOException ioexception) {
-            throw new ScrapeException("Error connecting to url: " + scrapeUrl, ioexception);
-        }
-    }
+
     public Set<String> discoverUrls() {
         return discoverElementLinks("a", "href");
     }
@@ -39,17 +31,23 @@ public class PageAnalyzer {
         return discoverElementLinks("img", "src");
     }
 
-    private Set<String> discoverElementLinks(String element, String attribute) {
-        Set<String> urls = new HashSet<>();
+    private void getPage(String scrapeUrl) {
+        try {
+            doc = Jsoup.connect(scrapeUrl).get();
+        } catch (IOException ioexception) {
+            throw new ScrapeException("Error connecting to url: " + scrapeUrl, ioexception);
+        }
+    }
 
-        logger.fine("Page size to discover:"+ doc.text().length());
+    private Set<String> discoverElementLinks(String element, String attribute) {
         Elements elList = doc.select(element);
-        logger.info("a href:" + Arrays.toString(elList.toArray()));
+        logger.info("selected links of type" + element +": " + Arrays.toString(elList.toArray()));
         Set<String> links = elList.stream()
                 .map(el -> el.absUrl(attribute))
                 .collect(Collectors.toSet());
-        urls.addAll(links);
 
+        Set<String> urls = new HashSet<>();
+        urls.addAll(links);
         return urls;
     }
 

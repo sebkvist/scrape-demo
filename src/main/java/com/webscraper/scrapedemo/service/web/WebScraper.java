@@ -1,17 +1,14 @@
-package com.webscraper.scrapedemo.controller;
+package com.webscraper.scrapedemo.service.web;
 
 import com.webscraper.scrapedemo.exception.ScrapeException;
 import com.webscraper.scrapedemo.model.ScrapeResult;
-import com.webscraper.scrapedemo.service.LocalFileService;
-import com.webscraper.scrapedemo.service.PageAnalyzer;
-import com.webscraper.scrapedemo.service.WebConnector;
+import com.webscraper.scrapedemo.service.file.LocalFileService;
+import com.webscraper.scrapedemo.service.web.util.UrlKeeper;
+import com.webscraper.scrapedemo.service.web.util.UrlHandler;
 
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class WebScraper {
 
@@ -23,11 +20,10 @@ public class WebScraper {
     private PageAnalyzer analyzer = new PageAnalyzer();
     private LocalFileService fileService = new LocalFileService();
 
+    private UrlKeeper urlKeeper = new UrlKeeper();
+
     private Integer recurseLevel = 0;
 
-//    private Set<String> urlSet = new HashSet<>();
-
-    private Set<String> discoveredUrls = new HashSet<>();
     public void scrapeWebPages(String scrapeUrl) {
         logger.info("Scraping website with root url..:" + scrapeUrl);
         savePageAndDiscoverUrlsRecursively(scrapeUrl);
@@ -43,19 +39,20 @@ public class WebScraper {
         savePage(scrapeUrl, scrapeResult.content());
 
         // handle images
-        Set<String> filteredImages = filterDiscoveredUrls(scrapeResult.imgLinks());
+        Set<String> filteredImages = urlKeeper.extractAndSaveUniqueUrls(scrapeResult.imgLinks());
         logger.info("number of new images:" + filteredImages.size());
         filteredImages.forEach((src) -> {
             saveImage(src);
         });
 
         // handle urls recursively
-        Set<String> filteredUrls = filterDiscoveredUrls(scrapeResult.urlsToScrape());
+        Set<String> filteredUrls = urlKeeper.extractAndSaveUniqueUrls(scrapeResult.urlsToScrape());
         logger.info("number of new urls:" + filteredUrls.size());
 
-        logger.info("total discovered urls:" + discoveredUrls.size());
+        Set<String> totalDiscoveredUrls = urlKeeper.getTotalUniqueUrls();
+        logger.info("total discovered urls:" + totalDiscoveredUrls.size());
 
-        if (discoveredUrls.size() > PAGE_LIMIT) {
+        if (totalDiscoveredUrls.size() > PAGE_LIMIT) {
             logger.info(String.format("reached page limit of %d, stopping recursion.", PAGE_LIMIT));
 
         } else {
@@ -66,42 +63,29 @@ public class WebScraper {
         logger.info("recursive level up:" + recurseLevel);
     }
 
-    private Set<String> filterDiscoveredUrls(Set<String> discovered) {
-        // filter alredy discovered urls
-        Set<String> filtered = discovered.stream().filter((entry) -> !discoveredUrls.contains(entry))
-                .collect(Collectors.toSet());
-
-//        logger.info("new urls filtered:");
-//        logger.info(Arrays.toString(filtered.toArray()));
-        // filter relative, to start with
-        filtered.forEach((entry) -> {
-            if (!entry.contains("http")) {
-                logger.info("new relative url:" + entry);
-            }
-        });
-
-        discoveredUrls.addAll(filtered);
-        return filtered;
-    }
 
     private void savePage(String url, String content)  {
         logger.info("Saving content for url:" + url);
-        if (!url.contains("http")) {
-            logger.warning("WARNING, RELATIVE: " + url);
-        }
+        throwIfRelative(url);
 
-        String path = fileService.urlToPath(url);
-        fileService.savePage(path, content);
+        String path = UrlHandler.getPathFromUrl(url);
+        fileService.savePage(url, content);
+    }
+
+    private static void throwIfRelative(String url) {
+        if (!url.contains("http")) {
+            //TODO:
+            throw new ScrapeException("WARNING, RELATIVE URL: " + url);
+        }
     }
 
     private void saveImage(String url)  {
-        try(InputStream inputStream = WebConnector.getImage(url)) {
+        try(InputStream inputStream = UrlHandler.getImage(url)) {
             //logger.info("Saving image for url:" + url);
-            if (!url.contains("http")) {
-                logger.warning("WARNING, RELATIVE: " + url);
-            }
-            String path = fileService.urlToPath(url);
-            fileService.saveImage(path, inputStream.readAllBytes());
+            throwIfRelative(url);
+
+            String path = UrlHandler.getPathFromUrl(url);
+            fileService.saveImage(url, inputStream.readAllBytes());
 
         } catch (Exception ex) {
             throw new ScrapeException("Error saving image:" + url, ex);
