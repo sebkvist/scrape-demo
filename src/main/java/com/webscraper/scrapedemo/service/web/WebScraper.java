@@ -7,12 +7,13 @@ import com.webscraper.scrapedemo.service.web.util.UrlKeeper;
 import com.webscraper.scrapedemo.service.web.util.UrlHandler;
 
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Set;
 import java.util.logging.Logger;
 
 public class WebScraper {
 
-    private static final int PAGE_LIMIT = 256;
+    private static final int PAGE_LIMIT = 512;
     static Logger logger = Logger.getLogger(WebScraper.class.getName());
 
     public static final String BASE_URL = "https://books.toscrape.com/index.html";
@@ -26,6 +27,7 @@ public class WebScraper {
 
     public void scrapeWebPages(String scrapeUrl) {
         logger.info("Scraping website with root url..:" + scrapeUrl);
+        urlKeeper.extractAndSaveUniqueUrls(Set.of(scrapeUrl));
         savePageAndDiscoverUrlsRecursively(scrapeUrl);
     }
 
@@ -43,6 +45,13 @@ public class WebScraper {
         logger.info("number of new images:" + filteredImages.size());
         filteredImages.forEach((src) -> {
             saveImage(src);
+        });
+
+        // handle styles
+        Set<String> styleSheets = urlKeeper.extractAndSaveUniqueUrls(scrapeResult.styleLinks());
+        logger.info("number of new images:" + styleSheets.size());
+        styleSheets.forEach((ref) -> {
+            saveStyles(ref);
         });
 
         // handle urls recursively
@@ -69,7 +78,7 @@ public class WebScraper {
         throwIfRelative(url);
 
         String path = UrlHandler.getPathFromUrl(url);
-        fileService.savePage(url, content);
+        fileService.savePage(path, content);
     }
 
     private static void throwIfRelative(String url) {
@@ -85,12 +94,28 @@ public class WebScraper {
             throwIfRelative(url);
 
             String path = UrlHandler.getPathFromUrl(url);
-            fileService.saveImage(url, inputStream.readAllBytes());
+            fileService.saveImage(path, inputStream.readAllBytes());
 
         } catch (Exception ex) {
             throw new ScrapeException("Error saving image:" + url, ex);
 
         }
     }
+
+    private void saveStyles(String url) {
+        try(InputStream reader = UrlHandler.getStyle(url)) {
+            logger.info("Saving style for url:" + url);
+            throwIfRelative(url);
+
+
+            String path = UrlHandler.getPathFromUrl(url);
+            fileService.saveStyle(path, reader.readAllBytes());
+
+        } catch (Exception ex) {
+            throw new ScrapeException("Error saving style:" + url, ex);
+
+        }
+    }
+
 
 }

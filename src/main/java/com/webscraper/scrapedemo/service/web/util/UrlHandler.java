@@ -27,4 +27,15 @@ public class UrlHandler {
             throw new ScrapeException("error converting url to path:" + url, ex);
         }
     }
+
+    public static InputStream getStyle(String url) {
+        try {
+            URL urlObject = new URL(url);
+            return urlObject.openStream();
+        } catch (IOException ioexception) {
+            throw new ScrapeException("Error connecting to url: " + url, ioexception);
+        }
+    }
+
+
 }

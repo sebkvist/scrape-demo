@@ -27,7 +27,7 @@ public class ScrapeDemoApplication {
 		LocalFileService.createPathFromUrl("somedir2/subdir/index.html");
 		LocalFileService.createPathFromUrl("index.html");
 
-//		scraper.scrapeWebPages(WebScraper.BASE_URL);
+		scraper.scrapeWebPages(WebScraper.BASE_URL);
 	}
 
 }

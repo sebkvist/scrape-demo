@@ -20,8 +20,9 @@ public class PageAnalyzer {
     public ScrapeResult analyze(String scrapeUrl) {
         getPage(scrapeUrl);
 
-        return new ScrapeResult(doc.text(), discoverUrls(), discoverImageLinks());
+        return new ScrapeResult(doc.toString(), discoverUrls(), discoverImageLinks(), discoverStyleLinks());
     }
+
 
     public Set<String> discoverUrls() {
         return discoverElementLinks("a", "href");
@@ -29,6 +30,10 @@ public class PageAnalyzer {
 
     public Set<String> discoverImageLinks() {
         return discoverElementLinks("img", "src");
+    }
+
+    private Set<String> discoverStyleLinks() {
+        return discoverElementLinks("link", "href");
     }
 
     private void getPage(String scrapeUrl) {
