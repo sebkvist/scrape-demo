@@ -30,7 +30,7 @@ public class UrlHandler {
      * Extract the subfolder path of the url.
      *
      * @param url the total url, eg "www.website.com/path/to/file"
-     * @return the extract path, eg "/path/to/file.html"
+     * @return the extract path, eg "path/to/file.html"
      */
     public static String getPathFromUrl(String url) {
         try {

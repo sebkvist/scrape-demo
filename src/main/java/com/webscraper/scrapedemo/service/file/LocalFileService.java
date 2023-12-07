@@ -46,7 +46,7 @@ public class LocalFileService {
         }
     }
 
-    public String createPathFromUrl(String urlPath)  {
+    private String createPathFromUrl(String urlPath)  {
         try {
             String path = workingDir + File.separator + Paths.get(urlPath);
             return path;

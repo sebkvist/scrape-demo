@@ -9,6 +9,9 @@ import com.webscraper.scrapedemo.util.UrlHandler;
 
 import java.io.InputStream;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 public class WebScraper {
@@ -18,12 +21,17 @@ public class WebScraper {
 
     private UrlKeeper urlKeeper = new UrlKeeper();
 
-    private Integer recurseLevel = 0;
+    private AtomicInteger recurseLevel = new AtomicInteger();
 
     public WebScraper(LocalFileService localFileService) {
         this.localFileService = localFileService;
     }
 
+    /**
+     * Scrape a website recursively and save all files and content.
+     *
+     * @param scrapeUrl the root url to start the scraping from
+     */
     public void scrapeWebSite(String scrapeUrl) {
         logger.info("Scraping website with root url..:" + scrapeUrl);
 
@@ -32,7 +40,7 @@ public class WebScraper {
     }
 
     private void savePageAndDiscoverUrlsRecursively(String scrapeUrl) {
-        recurseLevel++;
+        recurseLevel.incrementAndGet();
         logger.info("recurse level:" + recurseLevel);
 
         logger.info("Scraping url..:" + scrapeUrl);
@@ -65,11 +73,9 @@ public class WebScraper {
         // handle new urls recursively
         filteredUrls.forEach(this::savePageAndDiscoverUrlsRecursively);
 
-        recurseLevel--;
+        recurseLevel.decrementAndGet();
         logger.info("recursive level up:" + recurseLevel);
     }
-
-
     private void savePage(String url, String content)  {
         logger.fine("Saving page content for url:" + url);
 
