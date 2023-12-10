@@ -17,7 +17,6 @@ public class UrlKeeper {
     private Set<String> totalUniqueUrls;
 
     public UrlKeeper() {
-//        totalUniqueUrls = Collections.synchronizedSet(new HashSet<>());
         totalUniqueUrls = new HashSet<>();
     }
 
@@ -26,7 +25,7 @@ public class UrlKeeper {
      *
      * @return
      */
-    public synchronized Integer getTotalUniqueUrls() {
+    public Integer getTotalUniqueUrls() {
         return totalUniqueUrls.size();
     }
 
@@ -37,7 +36,7 @@ public class UrlKeeper {
      *
      * @return the unique URLs extracted from the whole set of discovered URLs.
      */
-    public synchronized Set<String> extractAndKeepUniqueUrls(Set<String> discovered) {
+    public Set<String> extractAndKeepUniqueUrls(Set<String> discovered) {
         // filter already discovered urls
         Set<String> filtered = discovered.stream().filter((entry) -> !totalUniqueUrls.contains(entry))
                 .collect(Collectors.toSet());
