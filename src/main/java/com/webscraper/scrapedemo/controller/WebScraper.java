@@ -23,6 +23,8 @@ public class WebScraper {
 
     private AtomicInteger recurseLevel = new AtomicInteger();
 
+    private ExecutorService executorService;
+
     public WebScraper(LocalFileService localFileService) {
         this.localFileService = localFileService;
     }
@@ -35,8 +37,13 @@ public class WebScraper {
     public void scrapeWebSite(String scrapeUrl) {
         logger.info("Scraping website with root url..:" + scrapeUrl);
 
+        executorService = Executors.newFixedThreadPool(16);
+
         urlKeeper.extractAndKeepUniqueUrls(Set.of(scrapeUrl));
         savePageAndDiscoverUrlsRecursively(scrapeUrl);
+
+        logger.info("Traversal done, shutting down..:" + scrapeUrl);
+        executorService.shutdown();
     }
 
     private void savePageAndDiscoverUrlsRecursively(String scrapeUrl) {
@@ -77,20 +84,28 @@ public class WebScraper {
         logger.info("recursive level up:" + recurseLevel);
     }
     private void savePage(String url, String content)  {
-        logger.fine("Saving page content for url:" + url);
-
-        String path = UrlHandler.getPathFromUrl(url);
-        localFileService.savePage(path, content);
+        Runnable runnable = () -> {
+            logger.info("Saving page content for url:" + url);
+            String path = UrlHandler.getPathFromUrl(url);
+            localFileService.savePage(path, content);
+        };
+        executorService.execute(runnable);
     }
 
     private void saveImage(String url)  {
-        logger.fine("Saving image for url:" + url);
-        saveFileData(url);
+        Runnable runnable = () -> {
+            logger.info("Saving image for url:" + url);
+            saveFileData(url);
+        };
+        executorService.execute(runnable);
     }
 
     private void saveStyles(String url) {
-        logger.info("Saving style for url:" + url);
-        saveFileData(url);
+        Runnable runnable = () -> {
+            logger.info("Saving style for url:" + url);
+            saveFileData(url);
+        };
+        executorService.execute(runnable);
     }
 
     private void saveFileData(String url) {
