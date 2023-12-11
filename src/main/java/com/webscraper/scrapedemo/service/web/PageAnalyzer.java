@@ -64,7 +64,7 @@ public class PageAnalyzer {
      * (that may be relative or absolute) and get the absolute form of the url.
      *
      * @param element the name of the elements to select
-     * @param attribute the attribute of the elements to select. Note that the attribute should contain a URL value!
+     * @param attribute the attribute of the elements to select. Note that the attribute should contain a URL value.
      * @return a set of all selected urls, in absolute form.
      */
     private Set<String> discoverElementLinks(String element, String attribute) {

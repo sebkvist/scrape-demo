@@ -12,7 +12,7 @@ import java.net.URL;
  */
 public class UrlHandler {
     /**
-     * Get access to file with specifed url path.
+     * Get access to file with specified url path.
      *
      * @param url
      * @return

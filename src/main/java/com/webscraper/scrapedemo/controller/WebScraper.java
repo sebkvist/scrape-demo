@@ -17,6 +17,11 @@ import java.util.logging.Logger;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * The web scraper class, that takes a URL and scrapes the page of that URL,
+ * and recursively scrapes the pages of the URLs found in the current page.
+ *
+ */
 public class WebScraper {
     private Logger logger = Logger.getLogger(WebScraper.class.getName());
 
@@ -24,7 +29,7 @@ public class WebScraper {
 
     private UrlKeeper urlKeeper = new UrlKeeper();
 
-    private AtomicInteger recurseLevel = new AtomicInteger();
+    private Integer recurseLevel = 0;
 
     private ExecutorService executorService;
 
@@ -59,7 +64,7 @@ public class WebScraper {
     }
 
     private void savePageAndDiscoverUrlsRecursively(String scrapeUrl) {
-        recurseLevel.incrementAndGet();
+        recurseLevel++;
         logger.info("recurse level:" + recurseLevel);
 
         logger.info("Scraping url..:" + scrapeUrl);
@@ -92,8 +97,8 @@ public class WebScraper {
         // handle new urls recursively
         filteredUrls.forEach(this::savePageAndDiscoverUrlsRecursively);
 
-        recurseLevel.decrementAndGet();
-        logger.info("recursive level up:" + recurseLevel);
+        recurseLevel--;
+        logger.info("back to recursive level:" + recurseLevel);
     }
     private void savePage(String url, String content)  {
         Runnable runnable = () -> {
