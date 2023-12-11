@@ -14,6 +14,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
+
+import java.util.concurrent.TimeUnit;
+
 public class WebScraper {
     private Logger logger = Logger.getLogger(WebScraper.class.getName());
 
@@ -44,6 +47,15 @@ public class WebScraper {
 
         logger.info("Traversal done, shutting down..:" + scrapeUrl);
         executorService.shutdown();
+
+        logger.info("Traversal done, awaiting threads..:" + scrapeUrl);
+        try {
+            executorService.awaitTermination(20, TimeUnit.SECONDS);
+
+        } catch (Exception exception) {
+            throw new ScrapeException("Error in shutting down!", exception);
+        }
+        logger.info("Traversal complete!");
     }
 
     private void savePageAndDiscoverUrlsRecursively(String scrapeUrl) {
